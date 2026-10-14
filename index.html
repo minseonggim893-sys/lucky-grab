@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>럭키그랩 — 행사용 캡슐 뽑기</title>
+<meta name="description" content="대형 화면의 3D 캡슐 뽑기통과 QR로 참여하는 행사 집객용 경품 추첨">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#0f1013;--card:#181a1f;--line:#2c2f37;--ink:#f3f3f0;--dim:#9ca0ac;--gold:#ffd45a;
+  --display:"Black Han Sans","Malgun Gothic",sans-serif;--body:"Noto Sans KR","Malgun Gothic",system-ui,sans-serif;color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--body)}
+.wrap{max-width:760px;margin:0 auto;padding:40px 16px 60px}
+.hero h1{font-family:var(--display);font-weight:400;color:var(--gold);font-size:clamp(44px,11vw,84px);line-height:1;margin:0;letter-spacing:.02em}
+.hero p{color:var(--dim);font-size:18px;margin:.6em 0 0;text-wrap:balance}
+.balls{display:flex;gap:8px;margin:22px 0 30px}
+.balls i{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff9,transparent 45%),var(--c)}
+section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+h2{font-size:18px;margin:0 0 12px}
+ol{margin:0;padding-left:1.3em;color:var(--dim)}
+ol b{color:var(--ink)}
+label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--dim);margin-bottom:12px}
+input{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:16px var(--body);width:100%}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.btn{padding:12px 18px;border-radius:10px;border:1px solid var(--line);background:#23262d;color:var(--ink);font:600 15px var(--body);cursor:pointer;text-decoration:none;display:inline-block}
+.btn.pri{background:var(--gold);border-color:var(--gold);color:#2a1a00}
+.btn:disabled{opacity:.6}
+.msg{margin-top:10px;font-size:14px;color:#ffb3ad}
+.done{margin-top:14px;padding:14px;border-radius:12px;background:#1f2a1f;border:1px solid #2f4a30}
+.done p{margin:0 0 10px}
+.list a{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none}
+.list a:last-child{border-bottom:none}
+.list a span{color:var(--dim);font-size:13px}
+.note{color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>LUCKY GRAB</h1>
+    <p>대형 화면의 3D 캡슐 뽑기통 + 휴대폰 QR 참여. 박람회·설명회·체험 부스용 경품 추첨.</p>
+  </div>
+  <div class="balls" aria-hidden="true">
+    <i style="--c:#ff5a5f"></i><i style="--c:#4f8ef7"></i><i style="--c:#9be15d"></i><i style="--c:#ffd84d"></i><i style="--c:#c27bf0"></i><i style="--c:#f4f1ea"></i>
+  </div>
+
+  <section>
+    <h2>운영 순서</h2>
+    <ol>
+      <li><b>행사 만들기</b> — 아래에서 마스터 코드로 새 행사를 만들면 관리자 주소가 나옵니다.</li>
+      <li><b>경품 설정</b> — 관리자 페이지에서 경품 이름·색·모양·수량, 꽝 비율, 1인 1회를 정합니다.</li>
+      <li><b>대형 화면 띄우기</b> — 세로 모니터에 연결한 노트북으로 “대형 화면 열기”. 화면을 한 번 눌러 효과음·전체 화면을 켭니다.</li>
+      <li><b>참여</b> — 참가자가 QR을 찍어 폰에서 뽑으면 대형 화면에서 캡슐이 꺼내져 열립니다. 폰 화면을 보고 경품을 주고 “지급 완료”를 체크합니다.</li>
+    </ol>
+    <p class="note" style="margin:12px 0 0">QR 없이 운영할 때는 대형 화면에서 스페이스바(또는 ‘현장 뽑기’ 버튼)로 뽑을 수 있습니다.</p>
+  </section>
+
+  <section>
+    <h2>새 행사 만들기</h2>
+    <form id="create">
+      <label>행사명<input id="title" required maxlength="60" placeholder="예: 2026 진로박람회 학과 체험 부스"></label>
+      <label>마스터 코드<input id="master" required autocomplete="off" placeholder="관리 담당자에게 받은 8자리 코드"></label>
+      <button class="btn pri" id="go">행사 만들기</button>
+      <div class="msg" id="msg" role="alert"></div>
+    </form>
+    <div class="done" id="done" hidden>
+      <p><b>행사를 만들었습니다.</b> 관리자 주소는 다시 볼 수 없으니 즐겨찾기하거나 복사해 두세요. (이 브라우저의 “내 행사”에도 저장됩니다)</p>
+      <a class="btn pri" id="adminLink">관리자 페이지 열기</a>
+      <button class="btn" id="copyAdmin" type="button">관리자 주소 복사</button>
+    </div>
+  </section>
+
+  <section id="mine" hidden>
+    <h2>이 브라우저에서 만든 행사</h2>
+    <div class="list" id="list"></div>
+  </section>
+</div>
+
+<script type="module">
+import { api, pageUrl } from './js/api.js';
+const $ = (id) => document.getElementById(id);
+
+function listEvents() {
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem('lg.events') || '[]'); } catch (e) {}
+  $('mine').hidden = !list.length;
+  $('list').textContent = '';
+  for (const e of list) {
+    const a = document.createElement('a');
+    a.href = pageUrl('admin.html', { e: e.slug, k: e.key });
+    a.innerHTML = '<b></b><span></span>';
+    a.querySelector('b').textContent = e.title;
+    a.querySelector('span').textContent = '관리자 페이지 →';
+    $('list').appendChild(a);
+  }
+}
+
+$('create').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  $('msg').textContent = ''; $('go').disabled = true;
+  try {
+    const title = $('title').value.trim();
+    const r = await api.createEvent($('master').value.trim(), title);
+    const url = pageUrl('admin.html', { e: r.slug, k: r.admin_key });
+    try {
+      const list = JSON.parse(localStorage.getItem('lg.events') || '[]');
+      list.unshift({ slug: r.slug, key: r.admin_key, title });
+      localStorage.setItem('lg.events', JSON.stringify(list.slice(0, 20)));
+    } catch (e) {}
+    $('adminLink').href = url;
+    $('copyAdmin').onclick = async () => { try { await navigator.clipboard.writeText(url); $('copyAdmin').textContent = '복사했습니다'; } catch (e) { prompt('복사해서 쓰세요', url); } };
+    $('done').hidden = false; $('create').hidden = true;
+    listEvents();
+  } catch (e) {
+    $('msg').textContent = e.code === 'unauthorized' ? '마스터 코드가 맞지 않습니다.' : '만들지 못했습니다. 인터넷 연결 또는 Supabase 일시정지 상태를 확인해 주세요.';
+  }
+  $('go').disabled = false;
+});
+listEvents();
+</script>
+</body>
+</html>

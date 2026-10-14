@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1013">
+<title>럭키그랩</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+:root{--bg:#0f1013;--card:#1a1c21;--line:#2c2f37;--ink:#f5f5f2;--dim:#a3a7b3;--gold:#ffd45a;--accent:#ff5a5f;
+  --display:"Black Han Sans","Malgun Gothic",sans-serif;--body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:var(--body);-webkit-tap-highlight-color:transparent}
+main{min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;text-align:center}
+.brand{font-family:var(--display);color:var(--gold);letter-spacing:.06em;font-size:15px}
+h1{font-size:clamp(22px,6.4vw,30px);font-weight:900;margin:.35em 0 .2em;text-wrap:balance;line-height:1.25}
+.sub{color:var(--dim);font-size:15px;line-height:1.5;text-wrap:balance}
+.stage{flex:1;display:grid;place-items:center;width:100%;min-height:300px;position:relative}
+.cap{position:relative;width:min(62vw,240px);aspect-ratio:1}
+.cap .h{position:absolute;left:0;right:0;height:50%;transition:transform .8s cubic-bezier(.3,1.4,.5,1),opacity .8s}
+.cap .top{top:0;border-radius:999px 999px 0 0;background:radial-gradient(circle at 35% 30%,#ffffffee,#ffffffaa 45%,#e6e8ee 100%);box-shadow:inset 0 -4px 0 #0002}
+.cap .bot{bottom:0;border-radius:0 0 999px 999px;background:radial-gradient(circle at 35% -10%,var(--c2),var(--c) 60%,var(--c3));}
+.cap .band{position:absolute;left:-1%;right:-1%;top:calc(50% - 5px);height:10px;border-radius:5px;background:linear-gradient(180deg,#00000033,#ffffff55,#00000033);transition:opacity .3s}
+.cap .shine{position:absolute;left:20%;top:11%;width:26%;height:15%;border-radius:50%;background:#fffb;filter:blur(3px)}
+.cap{--c:#5a5f6b;--c2:#8b909c;--c3:#3b3f48}
+.cap.idle{animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-10px) rotate(4deg)}}
+.cap.shake{animation:sh .1s infinite alternate}
+@keyframes sh{from{transform:rotate(-9deg) translateX(-3px)}to{transform:rotate(9deg) translateX(3px)}}
+.cap.open .top{transform:translate(-30%,-120%) rotate(-30deg);opacity:0}
+.cap.open .bot{transform:translate(20%,70%) rotate(18deg);opacity:0}
+.cap.open .band,.cap.open .shine{opacity:0}
+.result{position:absolute;inset:auto 0;margin:auto;width:100%;background:var(--card);border:2px solid var(--gold);border-radius:22px;padding:26px 20px 22px;transform:scale(.6);opacity:0;transition:transform .5s cubic-bezier(.3,1.5,.5,1) .2s,opacity .3s .2s}
+.result.on{transform:scale(1);opacity:1}
+.result.lose{border-color:#555b66}
+.result .no{font-weight:900;color:var(--gold);letter-spacing:.14em;font-size:14px}
+.result.lose .no{color:var(--dim)}
+.result .name{font-family:var(--display);font-size:clamp(32px,10vw,46px);line-height:1.15;margin:.25em 0 .2em;text-wrap:balance;word-break:keep-all}
+.result .msg{word-break:keep-all;color:var(--ink);font-size:16px;line-height:1.5;font-weight:500}
+.result .meta{margin-top:14px;color:var(--dim);font-size:13px;font-variant-numeric:tabular-nums;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.result .clock{color:var(--ink);font-weight:700}
+.tag{display:inline-block;margin-bottom:10px;padding:4px 10px;border-radius:999px;background:#2c2f37;color:var(--dim);font-size:12px}
+.btn{width:100%;height:68px;border:none;border-radius:18px;font-family:var(--display);font-size:28px;color:#2a1a00;background:linear-gradient(180deg,#ffe07a,#f5b82e);box-shadow:0 6px 0 #a97810,0 14px 30px -12px #000;cursor:pointer;transition:transform .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #a97810}
+.btn:disabled{filter:grayscale(.7) brightness(.7)}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.notice{width:100%;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;line-height:1.6;font-size:15px}
+.notice b{display:block;font-size:18px;margin-bottom:4px}
+.foot{margin-top:14px;color:#6c717c;font-size:12px}
+#fx{position:fixed;inset:0;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.cap.idle,.cap.shake{animation:none}.cap .h,.result{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">LUCKY GRAB</div>
+  <h1 id="title">불러오는 중…</h1>
+  <div class="sub" id="sub"></div>
+  <div class="stage">
+    <div class="cap idle" id="cap"><div class="h top"></div><div class="h bot"></div><div class="band"></div><div class="shine"></div></div>
+    <div class="result" id="result" role="status" aria-live="polite">
+      <div class="tag" id="rTag" hidden>이미 참여한 기록이에요</div>
+      <div class="no" id="rNo"></div>
+      <div class="name" id="rName"></div>
+      <div class="msg" id="rMsg"></div>
+      <div class="meta"><span id="rTime"></span><span class="clock" id="clock"></span></div>
+    </div>
+  </div>
+  <div class="notice" id="notice" hidden></div>
+  <button class="btn" id="go" hidden>캡슐 뽑기</button>
+  <div class="foot" id="foot">결과는 대형 화면에도 함께 나타납니다</div>
+</main>
+<canvas id="fx"></canvas>
+
+<script type="module">
+import { api, params, sfx, confetti } from './js/api.js';
+
+const $ = (id) => document.getElementById(id);
+const slug = params.get('e'), token = params.get('t');
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+function playerId() {
+  let id = store.get('lg.player');
+  if (!id) {
+    id = (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join(''));
+    store.set('lg.player', id);
+  }
+  return id;
+}
+
+function notice(title, body) {
+  $('notice').hidden = false;
+  $('notice').innerHTML = '<b></b><span></span>';
+  $('notice').querySelector('b').textContent = title;
+  $('notice').querySelector('span').textContent = body;
+  $('go').hidden = true;
+}
+
+const shade = (hex, k) => {
+  const n = parseInt(String(hex).replace('#', ''), 16), f = (v) => Math.round(Math.max(0, Math.min(255, k < 0 ? v * (1 + k) : v + (255 - v) * k)));
+  return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
+};
+function tint(color) {
+  const c = $('cap').style;
+  c.setProperty('--c', color); c.setProperty('--c2', shade(color, 0.45)); c.setProperty('--c3', shade(color, -0.35));
+}
+
+function showResult(r, { already = false, animate = true } = {}) {
+  tint(r.color);
+  $('rTag').hidden = !already;
+  $('result').classList.toggle('lose', !r.win);
+  $('rNo').textContent = `No. ${String(r.seq).padStart(3, '0')}`;
+  $('rName').textContent = r.prize_name;
+  $('rMsg').textContent = r.win ? '축하합니다! 부스 담당자에게 이 화면을 보여주세요' : '아쉽지만 다음 기회에 도전하세요';
+  $('rTime').textContent = r.at ? `뽑은 시각 ${new Date(r.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}` : '';
+  $('go').hidden = true; $('notice').hidden = true;
+  $('foot').textContent = '화면 캡처가 아닌 실제 화면임을 보여주는 현재 시각이 함께 표시됩니다';
+  const cap = $('cap');
+  cap.className = 'cap';
+  const open = () => {
+    cap.classList.add('open');
+    $('result').classList.add('on');
+    if (animate) { if (r.win) { sfx.win(); confetti($('fx'), r.color); } else sfx.lose(); }
+  };
+  if (animate) { cap.classList.add('shake'); setTimeout(() => { cap.classList.remove('shake'); open(); }, 700); }
+  else open();
+  tick(); if (!clockTimer) clockTimer = setInterval(tick, 1000);
+  if (ev && !ev.one_per_player && token) setTimeout(() => { $('go').hidden = false; $('go').textContent = '한 번 더 뽑기'; }, 1800);
+}
+let clockTimer;
+function tick() { $('clock').textContent = new Date().toLocaleTimeString('ko-KR'); }
+
+let ev;
+async function main() {
+  if (!slug) return notice('잘못된 주소예요', '대형 화면의 QR 코드를 다시 찍어주세요.');
+  try { ev = await api.getEvent(slug); }
+  catch (e) { $('title').textContent = '럭키그랩'; return notice('연결할 수 없어요', '인터넷 연결을 확인하고 새로고침 해주세요.'); }
+  if (!ev) { $('title').textContent = '럭키그랩'; return notice('행사를 찾을 수 없어요', '대형 화면의 QR 코드를 다시 찍어주세요.'); }
+  $('title').textContent = ev.title;
+  $('sub').textContent = ev.subtitle || '';
+  document.title = `${ev.title} · 럭키그랩`;
+
+  const saved = store.get('lg.result.' + slug);
+  if (saved && ev.one_per_player) {
+    try { return showResult(JSON.parse(saved), { already: true, animate: false }); } catch (e) {}
+  }
+  if (!ev.is_open) return notice('지금은 운영 중이 아니에요', '부스 운영 시간에 다시 참여해주세요.');
+  if (!token) return notice('QR 코드로 들어와 주세요', '대형 화면에 나온 QR 코드를 카메라로 찍으면 참여할 수 있어요.');
+  $('go').hidden = false;
+  $('go').onclick = draw;
+}
+
+let busy = false;
+async function draw() {
+  if (busy) return;
+  busy = true; $('go').disabled = true; $('go').textContent = '뽑는 중…';
+  $('result').classList.remove('on'); $('notice').hidden = true;
+  const cap = $('cap'); tint('#5a5f6b'); cap.className = 'cap shake'; sfx.rattle();
+  const minWait = new Promise((r) => setTimeout(r, 1300));
+  let r;
+  try { r = await api.draw(slug, token, playerId()); }
+  catch (e) { r = { error: 'network' }; }
+  await minWait;
+  cap.className = 'cap idle';
+  busy = false; $('go').disabled = false; $('go').textContent = '캡슐 뽑기';
+  if (r && !r.error) {
+    r.at = new Date().toISOString();
+    if (ev.one_per_player) store.set('lg.result.' + slug, JSON.stringify(r));
+    return showResult(r);
+  }
+  switch (r?.error) {
+    case 'already': {
+      const prev = { ...r, at: null }; delete prev.error;
+      store.set('lg.result.' + slug, JSON.stringify(prev));
+      return showResult(prev, { already: true, animate: false });
+    }
+    case 'expired': return notice('QR 코드가 만료되었어요', '대형 화면의 QR 코드를 다시 찍어주세요. QR은 1분마다 바뀌어요.');
+    case 'closed': return notice('지금은 운영 중이 아니에요', '부스 운영 시간에 다시 참여해주세요.');
+    case 'soldout': return notice('경품이 모두 소진되었어요', '참여해주셔서 감사합니다!');
+    case 'no_event': return notice('행사를 찾을 수 없어요', '대형 화면의 QR 코드를 다시 찍어주세요.');
+    case 'bad_player': return notice('참여할 수 없어요', '브라우저의 사생활 보호 모드를 끄고 다시 시도해주세요.');
+    default: return notice('연결이 불안정해요', '잠시 후 다시 눌러주세요.'), ($('go').hidden = false);
+  }
+}
+
+main();
+</script>
+</body>
+</html>

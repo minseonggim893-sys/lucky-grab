@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>럭키그랩 관리자</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+:root{--bg:#0f1013;--card:#181a1f;--line:#2c2f37;--ink:#f3f3f0;--dim:#9ca0ac;--gold:#ffd45a;--red:#ff7b72;--green:#5bd27a;
+  --display:"Black Han Sans","Malgun Gothic",sans-serif;--body:"Noto Sans KR","Malgun Gothic",system-ui,sans-serif;color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 110px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+header .brand{font-family:var(--display);color:var(--gold);letter-spacing:.06em}
+header h1{flex:1;min-width:200px;margin:0;font-size:24px;line-height:1.3}
+.pill{padding:6px 12px;border-radius:999px;font-weight:700;font-size:13px;border:1px solid var(--line);background:var(--card);cursor:pointer;color:var(--ink)}
+.pill .d{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--red)}
+.pill.on .d{background:var(--green)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;min-width:0}
+h2{margin:0 0 12px;font-size:16px;display:flex;align-items:center;gap:8px}
+h2 small{color:var(--dim);font-weight:400;font-size:13px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--dim);margin-bottom:10px}
+label.c{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+input,select{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:15px var(--body);min-width:0;width:100%}
+input[type=checkbox]{width:18px;height:18px;flex:none}
+input[type=color]{padding:2px;width:42px;height:38px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#23262d;color:var(--ink);font:500 14px var(--body);cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:#2b2f37}
+.btn.pri{background:var(--gold);border-color:var(--gold);color:#2a1a00;font-weight:700}
+.btn.danger{color:var(--red);border-color:#5a2a27}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.links .qr{width:120px;background:#fff;border-radius:8px;padding:6px;line-height:0}
+.links .qr svg{width:100%;height:auto}
+.links .lk{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.links .lk > div{flex:1;min-width:200px}
+.links .lk > .qr{flex:none}
+.note{color:var(--dim);font-size:13px}
+.warn{color:#ffcf8a;font-size:13px}
+.tbl{width:100%;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{color:var(--dim);font-weight:500;font-size:12px;text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px;border-bottom:1px solid #22252c;vertical-align:middle}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.prize td input{padding:7px 8px}
+.prize .w-name{min-width:140px}
+.prize .w-num{width:76px}
+.prize .pct{font-variant-numeric:tabular-nums;color:var(--gold);white-space:nowrap}
+.x{background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;padding:4px 8px}
+.x:hover{color:var(--red)}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:6px;border:1px solid #0004}
+.stats{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px}
+.stats div{font-variant-numeric:tabular-nums}
+.stats b{display:block;font-size:22px}
+.stats span{color:var(--dim);font-size:12px}
+.plays{max-height:460px;overflow:auto}
+.plays tr.claimed td{color:var(--dim)}
+.lose{color:var(--dim)}
+.savebar{position:fixed;left:0;right:0;bottom:0;background:#0f1013ee;border-top:1px solid var(--line);backdrop-filter:blur(6px)}
+.savebar .in{max-width:1040px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.savebar .msg{flex:1;color:var(--dim);font-size:14px}
+.savebar.dirty .msg{color:var(--gold)}
+.confirm{margin-top:10px;padding:12px;border:1px solid #5a2a27;border-radius:10px;background:#2a1513}
+#err{max-width:520px;margin:80px auto;padding:24px;text-align:center;line-height:1.7}
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:500;z-index:9}
+</style>
+</head>
+<body>
+<div id="err" hidden></div>
+<div class="wrap" id="app" hidden>
+  <header>
+    <span class="brand">LUCKY GRAB</span>
+    <h1 id="hTitle"></h1>
+    <button class="pill" id="openPill" title="누르면 운영 중 / 일시 중지가 바뀝니다"><span class="d"></span><span id="openTxt"></span></button>
+  </header>
+
+  <section class="links">
+    <h2>링크</h2>
+    <div class="lk">
+      <div class="qr" id="screenQr"></div>
+      <div>
+        <p style="margin:0 0 8px"><b>대형 화면</b> — 세로 모니터에 연결한 노트북에서 여세요. 이 주소에는 관리자 키가 들어 있으니 공유하지 마세요.</p>
+        <div class="btns">
+          <a class="btn pri" id="screenLink" target="_blank" rel="noopener">대형 화면 열기 ↗</a>
+          <button class="btn" id="copyScreen">대형 화면 주소 복사</button>
+          <button class="btn" id="copyAdmin">관리자 주소 복사</button>
+        </div>
+        <p class="note" style="margin:10px 0 0">참가자용 주소는 대형 화면의 QR로만 발급됩니다 (1분마다 바뀌어 링크 공유를 막습니다). 행사 전날 Supabase 대시보드에서 프로젝트가 일시정지 상태인지 확인하세요.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section>
+      <h2>행사 정보</h2>
+      <label class="f">행사명<input id="fTitle" maxlength="60"></label>
+      <label class="f">대형 화면 상단 문구 <input id="fHeader" maxlength="30" placeholder="비우면 행사명을 씁니다"></label>
+      <label class="f">QR 아래 안내 문구<input id="fSub" maxlength="80"></label>
+      <label class="f">통 안의 캡슐 수 (30~140)<input id="fBalls" type="number" min="30" max="140" step="5"></label>
+    </section>
+    <section>
+      <h2>참여 방식</h2>
+      <label class="c"><input type="checkbox" id="fOpen"> 운영 중 (끄면 뽑기가 막힙니다)</label>
+      <label class="c"><input type="checkbox" id="fOne"> 1인 1회 (같은 폰은 한 번만)</label>
+      <label class="f">확률 기준
+        <select id="fMode">
+          <option value="stock">남은 수량에 비례 — 실제 뽑기통처럼</option>
+          <option value="weight">직접 정한 가중치</option>
+        </select>
+      </label>
+      <label class="c"><input type="checkbox" id="fBlank"> 꽝 포함</label>
+      <div class="row2" id="blankRow">
+        <label class="f"><span id="blankWLbl">꽝 비중</span><input id="fBlankW" type="number" min="0"></label>
+        <label class="f">꽝 문구<input id="fBlankName" maxlength="30"></label>
+      </div>
+    </section>
+  </div>
+
+  <section>
+    <h2>경품 <small id="oddsNote"></small></h2>
+    <div class="tbl">
+      <table class="prize">
+        <thead><tr><th>색</th><th>이름</th><th>캡슐 모양</th><th class="num">남은 수량</th><th class="num" id="wTh">가중치</th><th class="num">당첨 확률</th><th class="num">지급</th><th></th></tr></thead>
+        <tbody id="prizeRows"></tbody>
+      </table>
+    </div>
+    <div class="btns" style="margin-top:10px"><button class="btn" id="addPrize">+ 경품 추가</button></div>
+  </section>
+
+  <section>
+    <h2>당첨 기록 <small>새 기록은 자동으로 들어옵니다</small></h2>
+    <div class="stats" id="stats"></div>
+    <div class="btns" style="margin-bottom:10px">
+      <button class="btn" id="csv">CSV 내려받기</button>
+      <button class="btn danger" id="reset">기록·수량 초기화</button>
+    </div>
+    <div class="confirm" id="resetBox" hidden>
+      <p style="margin:0 0 8px">모든 당첨 기록과 참여자 기록이 지워지고 경품 수량이 처음 값으로 돌아갑니다. 되돌릴 수 없습니다.</p>
+      <label class="f">확인을 위해 <b>초기화</b>를 입력하세요<input id="resetIn" autocomplete="off"></label>
+      <div class="btns"><button class="btn" id="resetNo">취소</button><button class="btn danger" id="resetYes" disabled>초기화 실행</button></div>
+    </div>
+    <div class="plays tbl">
+      <table>
+        <thead><tr><th class="num">No.</th><th>시각</th><th>결과</th><th>방식</th><th>지급 완료</th></tr></thead>
+        <tbody id="playRows"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="savebar" id="savebar" hidden>
+  <div class="in"><span class="msg" id="saveMsg">변경 사항 없음</span><button class="btn" id="revert" hidden>되돌리기</button><button class="btn pri" id="save">저장</button></div>
+</div>
+
+<script type="module">
+import { api, subscribePlays, params, pageUrl, oddsPool, qrSvg, esc } from './js/api.js';
+import { SHAPES } from './js/shapes.js';
+
+const $ = (id) => document.getElementById(id);
+const slug = params.get('e'), key = params.get('k');
+const SHAPE_NAMES = { sphere: '구슬', stripe: '줄무늬', star: '별(가시)', clover: '몽글몽글', glass: '유리 캡슐' };
+const PALETTE = ['#ff5a5f', '#4f8ef7', '#9be15d', '#ffd84d', '#c27bf0', '#ff9f43', '#4fd1c5', '#ff7eb6', '#f4f1ea'];
+
+let ev, form, dirty = false, plays = [];
+
+function toast(m) {
+  let t = document.querySelector('.toast');
+  if (!t) { t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+  t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2400);
+}
+async function copy(text, label) {
+  try { await navigator.clipboard.writeText(text); toast(label + ' 복사했습니다'); }
+  catch (e) { prompt('복사해서 쓰세요', text); }
+}
+
+function toForm(e) {
+  return {
+    title: e.title, subtitle: e.subtitle, mode: e.mode, blank_enabled: e.blank_enabled, blank_weight: e.blank_weight,
+    blank_name: e.blank_name, one_per_player: e.one_per_player, is_open: e.is_open,
+    theme: { ...(e.theme || {}) },
+    prizes: e.prizes.map((p) => ({ ...p })),
+  };
+}
+
+function setDirty(v) {
+  dirty = v;
+  $('savebar').classList.toggle('dirty', v);
+  $('saveMsg').textContent = v ? '저장하지 않은 변경 사항이 있습니다' : '모든 변경 사항이 저장됨';
+  $('revert').hidden = !v;
+}
+
+function paintForm() {
+  $('fTitle').value = form.title; $('fHeader').value = form.theme.header || ''; $('fSub').value = form.subtitle;
+  $('fBalls').value = form.theme.balls || 90;
+  $('fOpen').checked = form.is_open; $('fOne').checked = form.one_per_player; $('fMode').value = form.mode;
+  $('fBlank').checked = form.blank_enabled; $('fBlankW').value = form.blank_weight; $('fBlankName').value = form.blank_name;
+  paintPrizes();
+}
+
+function paintPrizes() {
+  const pool = oddsPool(form), tot = pool.reduce((a, x) => a + x.w, 0);
+  const pct = (p) => { const x = pool.find((y) => y.p === p); return tot && x ? (x.w / tot * 100).toFixed(1) + '%' : '0%'; };
+  const tb = $('prizeRows'); tb.textContent = '';
+  form.prizes.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    const given = Math.max(0, (p.initial ?? p.stock) - p.stock);
+    tr.innerHTML = `<td><input type="color" data-k="color" aria-label="색"></td>
+      <td><input class="w-name" data-k="name" aria-label="경품 이름"></td>
+      <td><select data-k="shape" aria-label="캡슐 모양">${SHAPES.map((s) => `<option value="${s}">${SHAPE_NAMES[s]}</option>`).join('')}</select></td>
+      <td class="num"><input class="w-num" type="number" min="0" data-k="stock" aria-label="남은 수량"></td>
+      <td class="num"><input class="w-num" type="number" min="0" data-k="weight" aria-label="가중치"></td>
+      <td class="num pct">${pct(p)}</td>
+      <td class="num">${given}</td>
+      <td><button class="x" aria-label="경품 삭제" title="삭제">✕</button></td>`;
+    tr.querySelectorAll('[data-k]').forEach((el) => {
+      const k = el.dataset.k; el.value = p[k];
+      if (k === 'weight') el.disabled = form.mode === 'stock';
+      el.addEventListener('input', () => {
+        p[k] = el.type === 'number' ? Math.max(0, Math.floor(+el.value || 0)) : el.value;
+        setDirty(true);
+        if (k !== 'name') paintOdds();
+      });
+      if (k !== 'name') el.addEventListener('change', paintPrizes);
+    });
+    tr.querySelector('.x').onclick = () => { form.prizes.splice(i, 1); setDirty(true); paintPrizes(); };
+    tb.appendChild(tr);
+  });
+  if (form.blank_enabled && tot) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><span class="dot" style="background:#d7dae3"></span></td><td class="lose" colspan="4">${esc(form.blank_name)} (꽝)</td><td class="num pct">${(form.blank_weight / tot * 100).toFixed(1)}%</td><td></td><td></td>`;
+    tb.appendChild(tr);
+  }
+  paintOdds();
+}
+function paintOdds() {
+  $('wTh').style.opacity = form.mode === 'stock' ? 0.4 : 1;
+  $('blankWLbl').textContent = form.mode === 'stock' ? '꽝 캡슐 개수' : '꽝 가중치';
+  $('blankRow').style.opacity = form.blank_enabled ? 1 : 0.4;
+  $('oddsNote').textContent = form.mode === 'stock'
+    ? '확률 = 남은 수량 ÷ (전체 남은 수량 + 꽝 개수). 뽑을수록 바뀝니다.'
+    : '확률 = 가중치 ÷ 가중치 합계. 수량이 0이 되면 빠집니다.';
+  const pool = oddsPool(form), tot = pool.reduce((a, x) => a + x.w, 0);
+  document.querySelectorAll('#prizeRows tr').forEach((tr, i) => {
+    const p = form.prizes[i], c = tr.querySelector('.pct'); if (!p || !c) return;
+    const x = pool.find((y) => y.p === p); c.textContent = tot && x ? (x.w / tot * 100).toFixed(1) + '%' : '0%';
+  });
+}
+
+function bindForm() {
+  const on = (id, fn) => $(id).addEventListener('input', () => { fn($(id)); setDirty(true); paintPrizes(); });
+  on('fTitle', (el) => (form.title = el.value));
+  on('fHeader', (el) => (form.theme.header = el.value.trim()));
+  on('fSub', (el) => (form.subtitle = el.value));
+  on('fBalls', (el) => (form.theme.balls = Math.max(30, Math.min(140, +el.value || 90))));
+  on('fOpen', (el) => (form.is_open = el.checked));
+  on('fOne', (el) => (form.one_per_player = el.checked));
+  on('fMode', (el) => (form.mode = el.value));
+  on('fBlank', (el) => (form.blank_enabled = el.checked));
+  on('fBlankW', (el) => (form.blank_weight = Math.max(0, Math.floor(+el.value || 0))));
+  on('fBlankName', (el) => (form.blank_name = el.value));
+  $('addPrize').onclick = () => {
+    form.prizes.push({ id: '', name: '새 경품', color: PALETTE[form.prizes.length % PALETTE.length], shape: SHAPES[form.prizes.length % SHAPES.length], stock: 10, initial: 10, weight: 10 });
+    setDirty(true); paintPrizes();
+    const rows = $('prizeRows').querySelectorAll('input.w-name'); rows[form.prizes.length - 1]?.select();
+  };
+  $('save').onclick = save;
+  $('revert').onclick = () => { form = toForm(ev); setDirty(false); paintForm(); };
+  $('openPill').onclick = async () => {
+    try { applyEvent(await api.adminSave(slug, key, { is_open: !ev.is_open }), true); toast(ev.is_open ? '운영을 시작했습니다' : '운영을 멈췄습니다'); }
+    catch (e) { toast('저장하지 못했습니다'); }
+  };
+  addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+}
+
+async function save() {
+  if (form.prizes.some((p) => !String(p.name).trim())) return toast('경품 이름을 채워주세요');
+  $('save').disabled = true;
+  try {
+    const payload = { ...form, prizes: form.prizes.map(({ id, name, color, shape, stock, weight }) => ({ id, name: name.trim(), color, shape, stock, weight })) };
+    applyEvent(await api.adminSave(slug, key, payload), true);
+    setDirty(false); toast('저장했습니다. 대형 화면에 몇 초 안에 반영됩니다');
+  } catch (e) { toast('저장하지 못했습니다: ' + e.message); }
+  $('save').disabled = false;
+}
+
+function applyEvent(e, forceForm) {
+  ev = e;
+  if (e.plays) { plays = e.plays; delete ev.plays; }
+  document.title = `${ev.title} · 럭키그랩 관리자`;
+  $('hTitle').textContent = ev.title;
+  $('openPill').classList.toggle('on', ev.is_open);
+  $('openTxt').textContent = ev.is_open ? '운영 중' : '일시 중지';
+  if (forceForm || !dirty) {
+    form = toForm(ev);
+    if (!forceForm && document.activeElement?.closest('#app section')) {
+      // someone is typing — only refresh the live numbers
+      paintStocksOnly();
+    } else paintForm();
+  }
+  paintPlays();
+}
+function paintStocksOnly() {
+  document.querySelectorAll('#prizeRows tr').forEach((tr, i) => {
+    const p = form.prizes[i], s = tr.querySelector('[data-k=stock]');
+    if (p && s && document.activeElement !== s) s.value = p.stock;
+  });
+  paintOdds();
+}
+
+function paintPlays() {
+  const won = plays.filter((p) => p.win), claimed = won.filter((p) => p.claimed).length;
+  const left = ev.prizes.reduce((a, p) => a + p.stock, 0);
+  $('stats').innerHTML = [
+    ['참여', plays.length], ['당첨', won.length], ['지급 완료', claimed], ['미지급', won.length - claimed], ['남은 경품', left],
+  ].map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('');
+  const tb = $('playRows'); tb.textContent = '';
+  for (const p of plays) {
+    const tr = document.createElement('tr'); if (p.claimed) tr.className = 'claimed';
+    tr.innerHTML = `<td class="num">${p.seq}</td><td>${new Date(p.created_at).toLocaleTimeString('ko-KR')}</td>
+      <td class="${p.win ? '' : 'lose'}"><span class="dot" style="background:${esc(p.color)}"></span>${esc(p.prize_name)}</td>
+      <td class="note">${p.kiosk ? '현장 버튼' : 'QR'}</td>
+      <td>${p.win ? `<label class="c" style="margin:0"><input type="checkbox" ${p.claimed ? 'checked' : ''} aria-label="${p.seq}번 지급 완료"></label>` : ''}</td>`;
+    const cb = tr.querySelector('input');
+    if (cb) cb.onchange = async () => {
+      try { await api.adminClaim(slug, key, p.id, cb.checked); p.claimed = cb.checked; paintPlays(); }
+      catch (e) { cb.checked = !cb.checked; toast('저장하지 못했습니다'); }
+    };
+    tb.appendChild(tr);
+  }
+  if (!plays.length) tb.innerHTML = '<tr><td colspan="5" class="note">아직 기록이 없습니다</td></tr>';
+}
+
+function csv() {
+  const q = (s) => `"${String(s).replace(/"/g, '""')}"`;
+  const rows = [['번호', '시각', '결과', '당첨', '방식', '지급완료']].concat(
+    plays.slice().reverse().map((p) => [p.seq, new Date(p.created_at).toLocaleString('ko-KR'), p.prize_name, p.win ? 'O' : 'X', p.kiosk ? '현장' : 'QR', p.claimed ? 'O' : '']));
+  const blob = new Blob(['﻿' + rows.map((r) => r.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `럭키그랩_${ev.title.replace(/[\\/:*?"<>|]/g, '')}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+let reloadT;
+function reload() {
+  clearTimeout(reloadT);
+  reloadT = setTimeout(async () => { try { applyEvent(await api.adminGet(slug, key)); } catch (e) { console.warn(e); } }, 300);
+}
+
+async function main() {
+  const fail = (m) => { $('err').hidden = false; $('err').innerHTML = m; };
+  if (!slug || !key) return fail('주소가 올바르지 않습니다.<br><a href="index.html" style="color:var(--gold)">처음 화면</a>에서 행사를 만들거나, 받은 관리자 주소로 들어와 주세요.');
+  try { ev = await api.adminGet(slug, key); }
+  catch (e) { return fail(e.code === 'unauthorized' ? '행사를 찾을 수 없거나 관리자 키가 맞지 않습니다.' : '서버에 연결할 수 없습니다. 인터넷 연결 또는 Supabase 일시정지 상태를 확인해 주세요.'); }
+  $('app').hidden = false; $('savebar').hidden = false;
+  const screenUrl = pageUrl('screen.html', { e: slug, k: key });
+  $('screenLink').href = screenUrl;
+  $('screenQr').innerHTML = qrSvg(screenUrl);
+  $('copyScreen').onclick = () => copy(screenUrl, '대형 화면 주소를');
+  $('copyAdmin').onclick = () => copy(location.href, '관리자 주소를');
+  $('csv').onclick = csv;
+  $('reset').onclick = () => { $('resetBox').hidden = false; $('resetIn').value = ''; $('resetYes').disabled = true; $('resetIn').focus(); };
+  $('resetNo').onclick = () => { $('resetBox').hidden = true; };
+  $('resetIn').oninput = () => { $('resetYes').disabled = $('resetIn').value.trim() !== '초기화'; };
+  $('resetYes').onclick = async () => {
+    try { await api.adminReset(slug, key); $('resetBox').hidden = true; applyEvent(await api.adminGet(slug, key), true); setDirty(false); toast('초기화했습니다'); }
+    catch (e) { toast('초기화하지 못했습니다'); }
+  };
+  bindForm();
+  applyEvent(ev, true); setDirty(false);
+  subscribePlays(ev.id, reload, (s) => { if (s === 'SUBSCRIBED') reload(); });
+  setInterval(reload, 15000);
+  try { const list = JSON.parse(localStorage.getItem('lg.events') || '[]'); if (!list.some((x) => x.slug === slug)) { list.unshift({ slug, key, title: ev.title }); localStorage.setItem('lg.events', JSON.stringify(list.slice(0, 20))); } } catch (e) {}
+}
+main();
+</script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>럭키그랩 대형 화면</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700;900&display=swap">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.176.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.176.0/examples/jsm/",
+  "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+} }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+:root{--bg:#1c1e22;--ink:#fff;--dim:#c9cdd4;--gold:#ffd45a;
+  --display:"Black Han Sans","Malgun Gothic",sans-serif;--body:"Noto Sans KR","Malgun Gothic",system-ui,sans-serif}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%}
+#ov{position:fixed;pointer-events:none}
+.title{position:absolute;left:0;right:0;text-align:center;font-family:var(--display);color:#5a5f66;
+  text-shadow:0 1px 0 #c3c8ce,0 -1px 0 #3f4349;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4%}
+.qrbox{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;text-align:center;width:90%}
+.qr{background:#fff;border-radius:6%;padding:3%;box-shadow:0 10px 30px #0006;line-height:0}
+.qr svg{width:100%;height:auto;display:block}
+.qrmsg{margin-top:.6em;font-weight:700;text-shadow:0 2px 8px #000c,0 0 2px #000;line-height:1.35;text-wrap:balance}
+.big{font-family:var(--display);color:#fff;text-shadow:0 3px 0 #0005,0 6px 24px #000a;line-height:1;margin-top:.25em}
+.state{background:#000b;border-radius:12px;padding:.8em 1.2em;font-weight:700}
+#card{position:fixed;left:50%;transform:translate(-50%,0) scale(.6);opacity:0;transition:transform .45s cubic-bezier(.3,1.5,.5,1),opacity .25s;
+  background:#16181dee;border:3px solid var(--gold);border-radius:22px;padding:22px 30px;text-align:center;max-width:86vw;box-sizing:border-box;box-shadow:0 20px 60px #000a;pointer-events:none}
+#card.on{opacity:1;transform:translate(-50%,0) scale(1)}
+#card.lose{border-color:#8a909b}
+#card .no{font-weight:900;letter-spacing:.14em;color:var(--gold);font-size:clamp(14px,2.2vmin,26px)}
+#card.lose .no{color:var(--dim)}
+#card .name{font-family:var(--display);font-size:clamp(34px,7vmin,96px);line-height:1.1;margin:.2em 0;text-wrap:balance}
+#card .msg{color:var(--dim);font-size:clamp(14px,2.4vmin,28px)}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .5s}
+#fx{position:fixed;inset:0;pointer-events:none}
+#status{position:fixed;left:10px;bottom:8px;font:12px var(--body);color:#fff8;background:#0006;padding:4px 8px;border-radius:6px;font-variant-numeric:tabular-nums}
+#status .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#e2493f;margin-right:6px;vertical-align:1px}
+#status.live .dot{background:#55c46a}
+#kiosk{position:fixed;right:10px;bottom:8px;font:600 13px var(--body);color:#fffc;background:#0007;border:1px solid #fff3;border-radius:8px;padding:6px 12px;cursor:pointer}
+#start{position:fixed;inset:0;display:grid;place-items:center;background:#000c;z-index:5;cursor:pointer;text-align:center}
+#start b{display:block;font-family:var(--display);font-weight:400;font-size:clamp(28px,6vmin,64px);color:var(--gold);margin-bottom:12px}
+#start span{color:var(--dim);font-size:clamp(14px,2.4vmin,22px);line-height:1.6}
+#err{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:9;text-align:center;padding:24px;line-height:1.6}
+@media (prefers-reduced-motion:reduce){#card{transition:none}}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="ov">
+  <div class="title" id="title"></div>
+  <div class="qrbox" id="qrbox"></div>
+</div>
+<div id="flash"></div>
+<div id="card" role="status" aria-live="polite"><div class="no" id="cNo"></div><div class="name" id="cName"></div><div class="msg" id="cMsg"></div></div>
+<canvas id="fx"></canvas>
+<div id="status"><span class="dot"></span><span id="stText">연결 중…</span></div>
+<button id="kiosk" hidden title="스페이스바로도 뽑을 수 있습니다">현장 뽑기 (Space)</button>
+<div id="start" hidden><div><b>럭키그랩</b><span>화면을 누르면 시작합니다<br>(효과음 켜기 · 전체 화면)</span></div></div>
+<div id="err" hidden></div>
+
+<script type="module">
+import { api, sb, subscribePlays, params, pageUrl, oddsPool, qrSvg, sfx, confetti } from './js/api.js';
+import { Jar, capsuleSpecs } from './js/jar3d.js';
+
+const $ = (id) => document.getElementById(id);
+const slug = params.get('e'), adminKey = params.get('k');
+const fail = (msg) => { $('err').hidden = false; $('err').innerHTML = msg; };
+
+let ev, jar, token = null, lastSeq = 0, live = false;
+const seen = new Set(), queue = [];
+let busy = false, pendingEvent = null;
+
+const capsuleCount = () => Math.max(30, Math.min(140, +(ev.theme?.balls) || 90));
+
+function layoutOverlay() {
+  if (!jar) return;
+  const r = jar.openingRect(), ov = $('ov');
+  Object.assign(ov.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+  const t = $('title');
+  t.style.top = (r.height * 0.012) + 'px';
+  t.style.height = t.style.lineHeight = (r.height * 0.13) + 'px';
+  const len = Math.max(4, [...t.textContent].length);
+  t.style.fontSize = Math.min(r.width * 0.11, r.height * 0.075, (r.width * 0.9) / (len * 0.92)) + 'px';
+  const q = $('qrbox');
+  q.style.bottom = (r.height * 0.035) + 'px';
+  q.style.fontSize = Math.max(12, r.width * 0.034) + 'px';
+  const qr = q.querySelector('.qr'); if (qr) qr.style.width = Math.min(r.width * 0.3, r.height * 0.17) + 'px';
+  const big = q.querySelector('.big'); if (big) big.style.fontSize = Math.min(r.width * 0.1, r.height * 0.06) + 'px';
+  $('card').style.top = (r.top + r.height * 0.62) + 'px';
+}
+
+function renderQr() {
+  const q = $('qrbox'), pool = oddsPool(ev);
+  if (!ev.is_open) q.innerHTML = `<div class="state">잠시 운영을 멈췄습니다</div>`;
+  else if (!pool.length) q.innerHTML = `<div class="state">경품이 모두 소진되었습니다</div>`;
+  else if (!token) q.innerHTML = `<div class="state">QR 준비 중…</div>`;
+  else {
+    const url = pageUrl('play.html', { e: slug, t: token });
+    q.innerHTML = `<div class="qr">${qrSvg(url)}</div><div class="qrmsg"></div><div class="big"></div>`;
+    q.querySelector('.qrmsg').textContent = ev.subtitle || 'QR을 찍고 행운의 캡슐을 뽑아보세요';
+    q.querySelector('.big').textContent = 'LUCKY GRAB';
+  }
+  layoutOverlay();
+}
+
+function applyEvent(e) {
+  if (busy) { pendingEvent = e; return; }
+  const before = ev && JSON.stringify([ev.prizes, ev.mode, ev.blank_enabled, ev.blank_weight, ev.theme]);
+  ev = e;
+  document.title = `${ev.title} · 럭키그랩`;
+  $('title').textContent = ev.theme?.header || ev.title;
+  const after = JSON.stringify([ev.prizes, ev.mode, ev.blank_enabled, ev.blank_weight, ev.theme]);
+  if (before !== after) jar.setTarget(capsuleSpecs(oddsPool(ev), capsuleCount()));
+  renderQr();
+  const left = ev.prizes.reduce((a, p) => a + p.stock, 0);
+  $('stText').textContent = `${live ? '실시간 연결됨' : '연결 끊김 · 재시도 중'} · 참여 ${ev.seq}회 · 남은 경품 ${left}개`;
+}
+
+async function refresh() {
+  try {
+    const e = await api.getEvent(slug);
+    if (e) {
+      if (e.seq > lastSeq) await catchUp();
+      applyEvent(e);
+    }
+  } catch (err) { console.warn(err); }
+}
+
+// plays missed while realtime was down
+async function catchUp() {
+  const { data } = await sb.from('plays').select('id,seq,prize_name,color,shape,win,kiosk').eq('event_id', ev.id).gt('seq', lastSeq).order('seq');
+  (data || []).forEach(enqueue);
+}
+
+function enqueue(p) {
+  const id = p.id || p.play_id;
+  if (!id || seen.has(id)) return;
+  seen.add(id);
+  lastSeq = Math.max(lastSeq, p.seq || 0);
+  queue.push(p);
+  runQueue();
+}
+
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+async function runQueue() {
+  if (busy) return;
+  busy = true;
+  while (queue.length) {
+    const p = queue.shift();
+    sfx.rattle();
+    await jar.stir(queue.length ? 700 : 1100);
+    await jar.grab({ color: p.color, shape: p.shape || 'sphere' });
+    // reveal
+    $('flash').style.transition = 'none'; $('flash').style.opacity = 0.85;
+    requestAnimationFrame(() => { $('flash').style.transition = 'opacity .6s'; $('flash').style.opacity = 0; });
+    jar.open();
+    const card = $('card');
+    card.className = p.win ? '' : 'lose';
+    $('cNo').textContent = `No. ${String(p.seq).padStart(3, '0')}${p.kiosk ? ' · 현장' : ''}`;
+    $('cName').textContent = p.prize_name;
+    $('cMsg').textContent = p.win ? '축하합니다! 부스에서 경품을 받아가세요' : '아쉽지만 다음 기회에!';
+    requestAnimationFrame(() => card.classList.add('on'));
+    if (p.win) { sfx.win(); confetti($('fx'), p.color); } else sfx.lose();
+    await wait(queue.length ? 3200 : 5000);
+    card.classList.remove('on');
+    await wait(400);
+  }
+  busy = false;
+  await refresh();                 // re-sync odds/capsules after the stock changed
+  if (pendingEvent) { const e = pendingEvent; pendingEvent = null; applyEvent(e); }
+}
+
+async function rotate() {
+  try {
+    const t = await api.rotateToken(slug, adminKey);
+    if (t !== token) { token = t; renderQr(); }
+  } catch (err) { console.warn(err); }
+}
+
+let drawing = false;
+async function kioskDraw() {
+  if (drawing || !ev?.is_open) return;
+  drawing = true;
+  try {
+    const r = await api.kioskDraw(slug, adminKey);
+    if (r?.error === 'soldout') toast('경품이 모두 소진되었습니다');
+    else if (r?.error === 'closed') toast('운영이 멈춰 있습니다');
+    else if (r?.play_id) enqueue({ ...r, id: r.play_id, kiosk: true });
+  } catch (err) { console.warn(err); }
+  setTimeout(() => (drawing = false), 600);
+}
+function toast(m) { $('stText').textContent = m; }
+
+async function main() {
+  if (!slug || !adminKey) return fail('주소가 올바르지 않습니다.<br>관리자 페이지의 “대형 화면 열기” 링크로 들어와 주세요.');
+  try { ev = await api.adminGet(slug, adminKey); }
+  catch (e) { return fail(e.code === 'unauthorized' ? '행사를 찾을 수 없거나 관리자 키가 맞지 않습니다.' : '서버에 연결할 수 없습니다. 인터넷 연결 또는 Supabase 일시정지 상태를 확인해 주세요.'); }
+  lastSeq = ev.seq;
+  (ev.plays || []).forEach((p) => seen.add(p.id));
+  delete ev.plays;
+  jar = new Jar($('stage'), { count: capsuleCount() });
+  const e0 = ev; ev = null; applyEvent(e0);
+  new ResizeObserver(layoutOverlay).observe($('stage'));
+  addEventListener('resize', layoutOverlay);
+
+  await rotate();
+  setInterval(rotate, 20000);
+  setInterval(refresh, 8000);
+  subscribePlays(ev.id, enqueue, (s) => {
+    live = s === 'SUBSCRIBED';
+    $('status').classList.toggle('live', live);
+    if (live) refresh();
+    else applyEvent(ev);
+  });
+
+  $('kiosk').hidden = false;
+  $('kiosk').onclick = kioskDraw;
+  addEventListener('keydown', (e) => {
+    if (e.code === 'Space') { e.preventDefault(); kioskDraw(); }
+    if (e.key === 'f' || e.key === 'F') toggleFs();
+  });
+  if (params.has('debug')) window.__lg = { jar, kioskDraw };
+  if (params.get('auto') === '1') return;   // unattended start (no sound until first click)
+  $('start').hidden = false;
+  $('start').onclick = () => { $('start').hidden = true; sfx.pop(); toggleFs(); wake(); };
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { wake(); refresh(); } });
+}
+function toggleFs() { try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}); } catch (e) {} }
+function wake() { try { navigator.wakeLock?.request('screen').catch(() => {}); } catch (e) {} }
+
+main();
+</script>
+</body>
+</html>

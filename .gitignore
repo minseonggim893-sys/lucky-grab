@@ -1,0 +1,4 @@
+# local only
+CLAUDE.md
+.claude/
+docs/ref-*.png

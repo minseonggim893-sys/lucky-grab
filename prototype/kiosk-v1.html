@@ -1,0 +1,339 @@
+<title>럭키 캡슐 뽑기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one-screen kiosk — glass capsule machine fills the stage, one big pull button below; settings slide over from the right. Single dark "event stage" look on purpose. */
+:root{
+  --stage:#12141c; --stage-2:#1b1e2a; --glass:#2a2f40; --line:#3a4057;
+  --ink:#f3f1ea; --ink-dim:#a3a7b8; --brass:#e8b54a; --brass-deep:#b8862a; --red:#e2493f;
+  --display:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--stage);color:var(--ink);font-family:var(--body);font-size:15px;overflow:hidden}
+.app{height:100%;display:flex;flex-direction:column;padding-inline:16px;padding-block:14px;gap:12px;max-width:900px;margin:0 auto;box-sizing:border-box}
+header{display:flex;align-items:flex-start;gap:12px}
+header .t{flex:1;min-width:0}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,6vw,56px);line-height:1;margin:0;letter-spacing:.01em;text-wrap:balance;color:var(--brass)}
+.sub{color:var(--ink-dim);margin-top:6px;font-size:clamp(13px,2.2vw,17px)}
+.iconbtn{flex:none;width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--stage-2);color:var(--ink-dim);font-size:18px;cursor:pointer;display:grid;place-items:center}
+.iconbtn:hover{color:var(--ink)}
+.machine{position:relative;flex:1;min-height:0;border-radius:28px 28px 14px 14px;background:linear-gradient(180deg,#232838,#171a25);border:2px solid var(--line);box-shadow:inset 0 0 0 6px #0e1017,0 20px 50px -20px #000}
+.machine canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.counter{position:absolute;left:14px;bottom:12px;font-family:var(--mono);font-size:12px;color:var(--ink-dim);background:#0e1017cc;padding:5px 9px;border-radius:6px;font-variant-numeric:tabular-nums}
+.pull{display:flex;gap:10px;align-items:center}
+#grab{flex:1;height:clamp(64px,10vh,96px);border:none;border-radius:18px;cursor:pointer;font-family:var(--display);font-size:clamp(26px,5vw,40px);color:#2a1a00;background:linear-gradient(180deg,var(--brass),var(--brass-deep));box-shadow:0 6px 0 #7a5814,0 14px 30px -10px #000;transition:transform .08s}
+#grab:active{transform:translateY(4px);box-shadow:0 2px 0 #7a5814}
+#grab:disabled{filter:grayscale(.8) brightness(.7);cursor:default}
+#grab:focus-visible,.iconbtn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+/* reveal */
+.reveal{position:fixed;inset:0;display:grid;place-items:center;background:#07080ccc;z-index:20}
+.cap{position:relative;width:min(56vw,260px);aspect-ratio:1;max-width:100%}
+.cap .h{position:absolute;left:0;right:0;height:50%;border-radius:999px 999px 0 0;transition:transform .7s cubic-bezier(.3,1.4,.5,1),opacity .7s}
+.cap .top{top:0;background:linear-gradient(180deg,#ffffffee,#ffffff99);box-shadow:inset 0 -3px 0 #0002}
+.cap .bot{bottom:0;border-radius:0 0 999px 999px}
+.cap .shine{position:absolute;left:18%;top:10%;width:26%;height:16%;border-radius:50%;background:#fff9;filter:blur(2px)}
+.cap.shake{animation:sh .12s 6 alternate}
+@keyframes sh{from{transform:rotate(-7deg)}to{transform:rotate(7deg)}}
+.cap.open .top{transform:translateY(-140%) rotate(-25deg);opacity:0}
+.cap.open .bot{transform:translateY(60%) rotate(12deg);opacity:0}
+.card{position:absolute;text-align:center;padding:28px 32px;border-radius:20px;background:var(--stage-2);border:2px solid var(--brass);max-width:min(86vw,520px);box-sizing:border-box;transform:scale(.6);opacity:0;transition:transform .5s cubic-bezier(.3,1.5,.5,1) .25s,opacity .3s .25s}
+.cap.open + .card{transform:scale(1);opacity:1}
+.card .rank{font-family:var(--mono);color:var(--brass);letter-spacing:.12em;font-size:13px}
+.card .name{font-family:var(--display);font-size:clamp(34px,8vw,64px);line-height:1.1;margin:10px 0 6px;text-wrap:balance}
+.card .msg{color:var(--ink-dim)}
+.card button{margin-top:20px;padding:12px 28px;border-radius:12px;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:500 16px var(--body);cursor:pointer}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
+
+/* settings */
+.panel{position:fixed;inset:0 0 0 auto;width:min(100%,460px);background:var(--stage-2);border-left:1px solid var(--line);z-index:30;display:flex;flex-direction:column;box-shadow:-20px 0 60px #0008}
+.panel .ph{display:flex;align-items:center;gap:10px;padding:calc(14px + env(safe-area-inset-top,0px)) 16px 12px;border-bottom:1px solid var(--line)}
+.panel .ph h2{flex:1;margin:0;font-size:18px}
+.panel .pb{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:18px}
+.panel .pf{display:flex;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+fieldset{border:1px solid var(--line);border-radius:12px;padding:12px;margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+legend{padding:0 6px;color:var(--brass);font-size:12px;letter-spacing:.08em}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink-dim)}
+input,select{background:var(--stage);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:15px var(--body);min-width:0}
+input[type=color]{padding:2px;width:40px;height:38px;flex:none}
+input[type=checkbox]{width:18px;height:18px}
+.row{display:grid;grid-template-columns:40px 1fr 64px 64px 32px;gap:6px;align-items:center}
+.row.head{font-size:11px;color:var(--ink-dim)}
+.row .pct{grid-column:2/-1;font-family:var(--mono);font-size:11px;color:var(--ink-dim);margin-top:-2px}
+.x{background:none;border:none;color:var(--ink-dim);font-size:18px;cursor:pointer}
+.btn{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:500 14px var(--body);cursor:pointer}
+.btn.pri{background:var(--brass);color:#2a1a00;border-color:var(--brass);flex:1}
+.btn.danger{color:#ffb3ad;border-color:#6b2c2a}
+.inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.stats{font-family:var(--mono);font-size:12px;color:var(--ink-dim);font-variant-numeric:tabular-nums;line-height:1.7}
+.note{font-size:12px;color:var(--ink-dim)}
+.pin{position:fixed;inset:0;display:grid;place-items:center;background:#07080ccc;z-index:40}
+.pin form{background:var(--stage-2);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;width:min(86vw,300px)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--stage);padding:10px 16px;border-radius:10px;z-index:50;font-weight:500}
+@media (prefers-reduced-motion:reduce){.cap.shake{animation:none}.cap .h,.card{transition:none}}
+</style>
+
+<div class="app">
+  <header>
+    <div class="t"><h1 id="title"></h1><div class="sub" id="subtitle"></div></div>
+    <button class="iconbtn" id="fs" aria-label="전체 화면" title="전체 화면">⛶</button>
+    <button class="iconbtn" id="gear" aria-label="설정" title="설정">⚙</button>
+  </header>
+  <div class="machine"><canvas id="cv"></canvas><div class="counter" id="counter"></div></div>
+  <div class="pull"><button id="grab">뽑기!</button></div>
+</div>
+
+<div class="reveal" id="reveal" hidden>
+  <div class="cap" id="cap"><div class="h top"></div><div class="h bot" id="capBot"></div><div class="shine"></div></div>
+  <div class="card"><div class="rank" id="rRank"></div><div class="name" id="rName"></div><div class="msg" id="rMsg"></div><button id="rClose">확인</button></div>
+</div>
+<canvas id="fx"></canvas>
+
+<div class="pin" id="pinBox" hidden>
+  <form id="pinForm"><b>관리자 PIN</b><input id="pinIn" inputmode="numeric" autocomplete="off" placeholder="PIN 입력"><div class="inline"><button type="button" class="btn" id="pinCancel">취소</button><button class="btn pri">열기</button></div></form>
+</div>
+
+<aside class="panel" id="panel" hidden aria-label="행사 설정">
+  <div class="ph"><h2>행사 설정</h2><button class="x" id="pClose" aria-label="닫기">✕</button></div>
+  <div class="pb">
+    <fieldset><legend>화면</legend>
+      <label class="f">행사명<input id="sTitle"></label>
+      <label class="f">안내 문구<input id="sSub"></label>
+      <label class="f">통 안의 캡슐 수<input id="sBalls" type="number" min="12" max="120"></label>
+      <label class="inline"><input type="checkbox" id="sSound"> 효과음</label>
+    </fieldset>
+    <fieldset><legend>당첨 방식</legend>
+      <label class="f">확률 기준
+        <select id="sMode"><option value="stock">남은 수량에 비례 (실제 뽑기통처럼)</option><option value="weight">직접 지정한 가중치</option></select>
+      </label>
+      <label class="inline"><input type="checkbox" id="sBlank"> 꽝 포함</label>
+      <label class="f" id="blankLbl">꽝 비중<input id="sBlankW" type="number" min="0"></label>
+    </fieldset>
+    <fieldset><legend>경품</legend>
+      <div class="row head"><span>색</span><span>이름</span><span>남은 수량</span><span id="wHead">가중치</span><span></span></div>
+      <div id="prizeRows" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button class="btn" id="addPrize" type="button">+ 경품 추가</button>
+    </fieldset>
+    <fieldset><legend>기록</legend>
+      <div class="stats" id="stats"></div>
+      <div class="inline"><button class="btn" id="copyLog" type="button">기록 복사 (CSV)</button><button class="btn danger" id="resetLog" type="button">기록·수량 초기화</button></div>
+      <div class="note" id="resetConfirm" hidden>정말 초기화할까요? 기록이 지워지고 수량이 처음 값으로 돌아갑니다. <button class="btn danger" id="resetYes" type="button">초기화</button></div>
+    </fieldset>
+    <fieldset><legend>잠금</legend>
+      <label class="f">관리자 PIN (비우면 잠금 없음)<input id="sPin" inputmode="numeric" autocomplete="off"></label>
+      <div class="note">설정과 기록은 이 기기의 브라우저에만 저장됩니다. 행사용 기기 한 대에서 운영하세요.</div>
+    </fieldset>
+  </div>
+  <div class="pf"><button class="btn pri" id="save">저장하고 닫기</button></div>
+</aside>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const KEY='luckygrab.v1';
+const DEFAULT={
+  title:'진로 체험 페스티벌',sub:'버튼을 눌러 행운의 캡슐을 뽑아보세요 (예시 설정)',
+  balls:54,sound:true,mode:'stock',blank:true,blankW:30,pin:'',
+  prizes:[
+    {id:'a',name:'문화상품권 1만원',color:'#e2493f',stock:3,initial:3,weight:3},
+    {id:'b',name:'편의점 쿠폰',color:'#3f8ee2',stock:12,initial:12,weight:12},
+    {id:'c',name:'학과 굿즈',color:'#55c46a',stock:20,initial:20,weight:20},
+    {id:'d',name:'간식 세트',color:'#e8b54a',stock:40,initial:40,weight:40}
+  ],
+  log:[]
+};
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!S||!S.prizes)S=structuredClone(DEFAULT);
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const BLANK={id:'_',name:'다음 기회에!',color:'#cfd3de'};
+
+/* ---------- odds ---------- */
+function pool(){
+  const c=S.prizes.filter(p=>p.stock>0).map(p=>({p,w:S.mode==='stock'?p.stock:Math.max(0,+p.weight||0)})).filter(x=>x.w>0);
+  if(S.blank&&S.blankW>0&&c.length)c.push({p:BLANK,w:+S.blankW});
+  return c;
+}
+function pick(){
+  const c=pool(),tot=c.reduce((a,b)=>a+b.w,0);if(!tot)return null;
+  let r=Math.random()*tot;for(const x of c){if((r-=x.w)<0)return x.p}return c[c.length-1].p;
+}
+
+/* ---------- physics ---------- */
+const cv=$('cv'),ctx=cv.getContext('2d');let W=0,H=0,R=20,dpr=1,balls=[],flying=null,shakeT=0;
+function resize(){
+  const b=cv.getBoundingClientRect();dpr=Math.min(2,devicePixelRatio||1);W=b.width;H=b.height;
+  cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+  R=Math.max(12,Math.min(46,Math.sqrt(W*H*0.5/(Math.max(12,S.balls)*Math.PI))));
+  for(const o of balls){o.r=R;o.x=Math.min(Math.max(o.x,R+8),W-R-8);o.y=Math.min(o.y,H-R-8)}
+}
+function colors(){
+  const c=pool();const n=Math.max(12,Math.min(120,+S.balls||54));
+  if(!c.length)return [];
+  const tot=c.reduce((a,b)=>a+b.w,0),out=[];
+  c.forEach(x=>{const k=Math.max(1,Math.round(n*x.w/tot));for(let i=0;i<k;i++)out.push(x.p.color)});
+  return out.sort(()=>Math.random()-.5).slice(0,n);
+}
+function fill(){
+  balls=colors().map((col,i)=>({x:R+8+Math.random()*(W-2*R-16),y:-Math.random()*H*1.2-R,vx:(Math.random()-.5)*2,vy:0,r:R,col,a:Math.random()*6.28}));
+  updCounter();
+}
+function step(){
+  const g=0.45,wall=8;
+  if(shakeT>0){shakeT--;for(const o of balls){if(o.y>H*0.35&&Math.random()<.35){o.vy-=4+Math.random()*7;o.vx+=(Math.random()-.5)*8}}}
+  for(const o of balls){o.vy+=g;o.vx*=.995;o.vy*=.995;o.x+=o.vx;o.y+=o.vy;o.a+=o.vx/o.r}
+  for(let it=0;it<3;it++){
+    for(let i=0;i<balls.length;i++){const a=balls[i];
+      for(let j=i+1;j<balls.length;j++){const b=balls[j];const dx=b.x-a.x,dy=b.y-a.y,d2=dx*dx+dy*dy,m=a.r+b.r;
+        if(d2<m*m&&d2>.01){const d=Math.sqrt(d2),nx=dx/d,ny=dy/d,ov=(m-d)/2;a.x-=nx*ov;a.y-=ny*ov;b.x+=nx*ov;b.y+=ny*ov;
+          const rv=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;if(rv<0){const im=-rv*.85/2;a.vx-=im*nx;a.vy-=im*ny;b.vx+=im*nx;b.vy+=im*ny}}}
+      if(a.x<a.r+wall){a.x=a.r+wall;a.vx=Math.abs(a.vx)*.6}
+      if(a.x>W-a.r-wall){a.x=W-a.r-wall;a.vx=-Math.abs(a.vx)*.6}
+      if(a.y>H-a.r-wall){a.y=H-a.r-wall;a.vy=-Math.abs(a.vy)*.35;a.vx*=.92}
+    }
+  }
+}
+function capsule(x,y,r,col,ang,glow){
+  ctx.save();ctx.translate(x,y);ctx.rotate(ang);
+  if(glow){ctx.shadowColor=col;ctx.shadowBlur=r*1.2}
+  ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();ctx.shadowBlur=0;
+  ctx.beginPath();ctx.arc(0,0,r,Math.PI,0);ctx.closePath();ctx.fillStyle='rgba(255,255,255,.82)';ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(-r,-1,2*r,2);
+  ctx.restore();
+  const gr=ctx.createRadialGradient(x-r*.35,y-r*.4,r*.1,x,y,r);
+  gr.addColorStop(0,'rgba(255,255,255,.55)');gr.addColorStop(.5,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(0,0,0,.35)');
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=gr;ctx.fill();
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  for(const o of balls)capsule(o.x,o.y,o.r,o.col,o.a,false);
+  if(flying){const f=flying,t=Math.min(1,(performance.now()-f.t0)/900),e=1-Math.pow(1-t,3);
+    capsule(f.x+(W/2-f.x)*e,f.y+(R*1.2-f.y)*e-Math.sin(e*Math.PI)*H*.15,R*(1+e*.8),f.col,f.a+e*6,true);
+    if(t>=1&&!f.done){f.done=true;showReveal(f.prize)}}
+  // glass reflection
+  const g=ctx.createLinearGradient(0,0,W,0);g.addColorStop(0,'rgba(255,255,255,.07)');g.addColorStop(.12,'rgba(255,255,255,0)');g.addColorStop(.85,'rgba(255,255,255,0)');g.addColorStop(.93,'rgba(255,255,255,.05)');g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+}
+function loop(){step();draw();requestAnimationFrame(loop)}
+
+/* ---------- sound ---------- */
+let ac;function tone(f,d,type='triangle',v=.15,delay=0){if(!S.sound)return;try{ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+delay;o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
+const rattle=()=>{for(let i=0;i<10;i++)tone(300+Math.random()*500,.06,'square',.04,i*.09)};
+const fanfare=win=>{(win?[523,659,784,1047]:[392,330]).forEach((f,i)=>tone(f,.25,'triangle',.18,i*.12))};
+
+/* ---------- draw flow ---------- */
+let busy=false;
+function grab(){
+  if(busy)return;const prize=pick();
+  if(!prize){toast('경품이 모두 소진되었습니다');return}
+  busy=true;$('grab').disabled=true;shakeT=70;rattle();
+  setTimeout(()=>{
+    let cand=balls.filter(b=>b.col===prize.color);if(!cand.length)cand=balls;
+    cand.sort((a,b)=>a.y-b.y);const b=cand[Math.floor(Math.random()*Math.min(3,cand.length))];
+    balls.splice(balls.indexOf(b),1);flying={x:b.x,y:b.y,a:b.a,col:prize.color,prize,t0:performance.now()};
+  },1300);
+}
+function showReveal(prize){
+  const win=prize!==BLANK;
+  if(win){const p=S.prizes.find(x=>x.id===prize.id);if(p)p.stock=Math.max(0,p.stock-1)}
+  S.log.push({t:new Date().toISOString(),name:prize.name,win});save();
+  const idx=S.prizes.findIndex(x=>x.id===prize.id);
+  $('capBot').style.background=`linear-gradient(180deg,${prize.color},${shade(prize.color,-.35)})`;
+  $('rRank').textContent=win?`PRIZE ${String(idx+1).padStart(2,'0')}`:'BETTER LUCK NEXT TIME';
+  $('rName').textContent=prize.name;
+  $('rMsg').textContent=win?'축하합니다! 부스 담당자에게 화면을 보여주세요.':'아쉽지만 다음 기회에 도전하세요.';
+  const cap=$('cap');cap.className='cap';$('reveal').hidden=false;
+  requestAnimationFrame(()=>{cap.classList.add('shake');tone(200,.4,'sine',.1)});
+  setTimeout(()=>{cap.classList.remove('shake');cap.classList.add('open');fanfare(win);if(win)confetti(prize.color)},900);
+}
+function closeReveal(){
+  $('reveal').hidden=true;flying=null;busy=false;$('grab').disabled=false;
+  // drop a fresh capsule back in so the jar keeps matching the odds
+  const c=colors();if(c.length&&balls.length<c.length){balls.push({x:W/2+(Math.random()-.5)*W*.4,y:-R,vx:(Math.random()-.5)*3,vy:0,r:R,col:c[Math.floor(Math.random()*c.length)],a:0})}
+  updCounter();
+}
+function shade(hex,k){const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;const f=v=>Math.round(Math.max(0,Math.min(255,v+(k<0?v*k:(255-v)*k))));return`rgb(${f(r)},${f(g)},${f(b)})`}
+
+/* ---------- confetti ---------- */
+const fx=$('fx'),fc=fx.getContext('2d');let parts=[];
+function confetti(col){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  fx.width=innerWidth*dpr;fx.height=innerHeight*dpr;fc.setTransform(dpr,0,0,dpr,0,0);
+  const cols=[col,'#e8b54a','#f3f1ea','#e2493f','#3f8ee2'];
+  for(let i=0;i<160;i++)parts.push({x:innerWidth/2,y:innerHeight*.45,vx:(Math.random()-.5)*16,vy:-Math.random()*16-4,s:4+Math.random()*6,c:cols[i%5],a:Math.random()*6,va:(Math.random()-.5)*.4,l:120+Math.random()*60});
+  if(parts.length===160)fxLoop();
+}
+function fxLoop(){
+  fc.clearRect(0,0,innerWidth,innerHeight);
+  parts=parts.filter(p=>p.l-->0);
+  for(const p of parts){p.vy+=.35;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.a+=p.va;fc.save();fc.translate(p.x,p.y);fc.rotate(p.a);fc.fillStyle=p.c;fc.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);fc.restore()}
+  if(parts.length)requestAnimationFrame(fxLoop);else fc.clearRect(0,0,innerWidth,innerHeight);
+}
+
+/* ---------- UI ---------- */
+function paint(){$('title').textContent=S.title||'럭키 캡슐';$('subtitle').textContent=S.sub||'';updCounter()}
+function updCounter(){const left=S.prizes.reduce((a,p)=>a+p.stock,0);$('counter').textContent=`남은 경품 ${left}개 · 참여 ${S.log.length}회`;$('grab').disabled=busy||!pool().length;$('grab').textContent=pool().length?'뽑기!':'경품 소진'}
+let toastT;function toast(m){let t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2200)}
+
+function rowsHTML(){
+  const box=$('prizeRows');box.textContent='';
+  const c=pool(),tot=c.reduce((a,b)=>a+b.w,0);
+  S.prizes.forEach((p,i)=>{
+    const w=c.find(x=>x.p===p);const pct=tot&&w?(w.w/tot*100).toFixed(1):'0.0';
+    const d=document.createElement('div');d.className='row';
+    d.innerHTML=`<input type="color" id="pc${i}"><input id="pn${i}" placeholder="경품 이름"><input id="ps${i}" type="number" min="0"><input id="pw${i}" type="number" min="0"><button class="x" type="button" aria-label="삭제">✕</button><div class="pct">현재 당첨 확률 ${pct}%</div>`;
+    box.appendChild(d);
+    $('pc'+i).value=p.color;$('pn'+i).value=p.name;$('ps'+i).value=p.stock;$('pw'+i).value=p.weight;$('pw'+i).disabled=S.mode==='stock';
+    d.querySelector('.x').onclick=()=>{readForm();S.prizes.splice(i,1);rowsHTML()};
+    ['pc','pn','ps','pw'].forEach(k=>$(k+i).addEventListener('change',()=>{readForm();rowsHTML()}));
+  });
+  $('wHead').style.opacity=S.mode==='stock'?.4:1;
+  $('blankLbl').firstChild.textContent=S.mode==='stock'?'꽝 캡슐 개수':'꽝 가중치';
+  const bp=S.blank&&tot?(S.blankW/tot*100).toFixed(1):'0.0';
+  $('blankLbl').title=`꽝 확률 ${bp}%`;
+  stats();
+}
+function stats(){
+  const won=S.log.filter(l=>l.win).length;
+  $('stats').innerHTML=`참여 ${S.log.length}회 · 당첨 ${won}회 · 꽝 ${S.log.length-won}회<br>`+S.prizes.map(p=>`${esc(p.name)} : ${p.stock} / ${p.initial} 남음`).join('<br>');
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function readForm(){
+  S.title=$('sTitle').value.trim();S.sub=$('sSub').value.trim();S.balls=Math.max(12,Math.min(120,+$('sBalls').value||54));
+  S.sound=$('sSound').checked;S.mode=$('sMode').value;S.blank=$('sBlank').checked;S.blankW=Math.max(0,+$('sBlankW').value||0);S.pin=$('sPin').value.trim();
+  S.prizes.forEach((p,i)=>{if(!$('pn'+i))return;p.color=$('pc'+i).value;p.name=$('pn'+i).value.trim()||'경품';
+    const ns=Math.max(0,Math.floor(+$('ps'+i).value||0));if(ns>p.stock)p.initial+=ns-p.stock;p.stock=ns;p.weight=Math.max(0,+$('pw'+i).value||0)});
+}
+function openPanel(){
+  $('sTitle').value=S.title;$('sSub').value=S.sub;$('sBalls').value=S.balls;$('sSound').checked=S.sound;$('sMode').value=S.mode;
+  $('sBlank').checked=S.blank;$('sBlankW').value=S.blankW;$('sPin').value=S.pin;$('resetConfirm').hidden=true;
+  rowsHTML();$('panel').hidden=false;$('sTitle').focus();
+}
+['sMode','sBlank','sBlankW'].forEach(id=>$(id).addEventListener('change',()=>{readForm();rowsHTML()}));
+$('addPrize').onclick=()=>{readForm();const pal=['#a066e0','#e27ab8','#4fc7c0','#f08a3c','#8fbf3a'];S.prizes.push({id:'p'+Date.now(),name:'새 경품',color:pal[S.prizes.length%5],stock:5,initial:5,weight:5});rowsHTML();$('pn'+(S.prizes.length-1)).select()};
+$('save').onclick=()=>{readForm();save();$('panel').hidden=true;paint();resize();fill();toast('저장했습니다')};
+$('pClose').onclick=()=>{$('panel').hidden=true};
+$('copyLog').onclick=()=>{
+  const csv='시각,결과,당첨\n'+S.log.map(l=>`${new Date(l.t).toLocaleString('ko-KR')},${l.name.replace(/,/g,' ')},${l.win?'O':'X'}`).join('\n');
+  const done=()=>toast('기록을 복사했습니다. 엑셀에 붙여넣으세요');
+  try{navigator.clipboard.writeText(csv).then(done,()=>fallback(csv))}catch(e){fallback(csv)}
+};
+function fallback(t){const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}a.remove();toast(ok?'기록을 복사했습니다':'복사가 막혀 있습니다')}
+$('resetLog').onclick=()=>{$('resetConfirm').hidden=false};
+$('resetYes').onclick=()=>{S.log=[];S.prizes.forEach(p=>p.stock=p.initial);save();$('resetConfirm').hidden=true;rowsHTML();fill();toast('초기화했습니다')};
+
+$('gear').onclick=()=>{if(S.pin){$('pinIn').value='';$('pinBox').hidden=false;$('pinIn').focus()}else openPanel()};
+$('pinForm').addEventListener('submit',e=>{e.preventDefault();if($('pinIn').value===S.pin){$('pinBox').hidden=true;openPanel()}else{$('pinIn').value='';$('pinIn').placeholder='PIN이 맞지 않습니다'}});
+$('pinCancel').onclick=()=>{$('pinBox').hidden=true};
+$('fs').onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>toast('이 화면에서는 전체 화면을 쓸 수 없습니다'))}catch(e){}};
+$('grab').onclick=grab;$('rClose').onclick=closeReveal;
+addEventListener('keydown',e=>{if(e.code==='Space'&&$('panel').hidden&&$('pinBox').hidden){e.preventDefault();$('reveal').hidden?grab():closeReveal()}});
+addEventListener('resize',resize);
+try{navigator.wakeLock?.request('screen').catch(()=>{})}catch(e){}
+
+paint();resize();fill();loop();
+})();
+</script>
